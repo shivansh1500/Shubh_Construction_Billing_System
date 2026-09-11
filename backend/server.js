@@ -124,8 +124,8 @@ let server;
 
 connectDB()
   .then(() => {
-    server = app.listen(PORT, '127.0.0.1', () => {
-      console.log(`[Shubh Billing Backend] Running on http://127.0.0.1:${PORT}`);
+    server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Shubh Billing Backend] Running on http://0.0.0.0:${PORT}`);
     });
   })
   .catch((err) => {
