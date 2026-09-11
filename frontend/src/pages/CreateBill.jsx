@@ -75,22 +75,16 @@ export default function CreateBill({ editMode = false }) {
 
   async function initPage() {
     try {
-      const [settingsRes, nextNumRes] = await Promise.all([
-        settingsAPI.get(),
-        editMode ? Promise.resolve(null) : billsAPI.getNextNumber(),
-      ]);
+      const settingsRes = await settingsAPI.get();
       const s = settingsRes.data;
       setSettings(s);
       if (s.default_tax_rate) setTaxRate(String(s.default_tax_rate));
 
-      if (!editMode && nextNumRes) {
-        setBillNumber(nextNumRes.data.next_number);
-      }
-
       if (editMode && id) {
         const billRes = await billsAPI.getById(id);
         const bill = billRes.data;
-        setExistingBillId(bill.id);
+        // Use _id (always present) with id virtual as fallback
+        setExistingBillId(bill._id || bill.id);
         setBillNumber(bill.bill_number);
         setBillDate(bill.bill_date || '');
         setDueDate(bill.due_date || '');
@@ -101,7 +95,7 @@ export default function CreateBill({ editMode = false }) {
         setDiscount(String(bill.discount || ''));
         setTaxRate(String(bill.tax_rate || s.default_tax_rate || 18));
         setTaxEnabled(bill.tax > 0);
-        setTemplateId(bill.template_id);
+        setTemplateId(bill.template_id || (bill.template && (bill.template._id || bill.template)));
         if (bill.items?.length) {
           setItems(bill.items.map(i => ({
             description: i.description,
@@ -130,7 +124,6 @@ export default function CreateBill({ editMode = false }) {
 
   function validate() {
     const errs = {};
-    if (!billNumber.trim()) errs.billNumber = 'Bill number is required.';
     if (!billDate) errs.billDate = 'Bill date is required.';
     if (!customerName.trim()) errs.customerName = 'Customer name is required.';
     if (items.length === 0) errs.items = 'Please add at least one item.';
@@ -145,7 +138,6 @@ export default function CreateBill({ editMode = false }) {
   function buildPayload() {
     const totals = calcTotals();
     return {
-      bill_number: billNumber.trim(),
       bill_date: billDate,
       due_date: dueDate || null,
       customer_name: customerName.trim(),
@@ -178,8 +170,12 @@ export default function CreateBill({ editMode = false }) {
         addToast('Bill updated successfully', 'success');
       } else {
         const res = await billsAPI.create(payload);
+        // Use _id (always a plain string from MongoDB) with id virtual as fallback
+        const newId = res.data._id || res.data.id;
+        setExistingBillId(newId);
+        // Display the server-assigned bill number
+        if (res.data.bill_number) setBillNumber(res.data.bill_number);
         addToast('Bill saved successfully', 'success');
-        setExistingBillId(res.data.id);
       }
     } catch (err) {
       const msg = err.response?.data?.error || 'Failed to save bill.';
@@ -199,8 +195,12 @@ export default function CreateBill({ editMode = false }) {
       // Save first if not saved
       if (!billId) {
         const res = await billsAPI.create(payload);
-        billId = res.data.id;
+        // CRITICAL: always use _id (raw MongoDB ObjectId as string).
+        // The 'id' virtual may be undefined depending on Mongoose version / lean() behaviour.
+        billId = res.data._id || res.data.id;
         setExistingBillId(billId);
+        // Display the server-assigned bill number
+        if (res.data.bill_number) setBillNumber(res.data.bill_number);
       } else {
         await billsAPI.update(billId, payload);
       }
@@ -208,7 +208,7 @@ export default function CreateBill({ editMode = false }) {
       // Generate PDF
       const pdfRes = await billsAPI.generatePDF(billId);
       addToast('Bill generated successfully!', 'success');
-      navigate(`/bill-preview/${billId}`, { state: { pdfPath: pdfRes.data.pdf_path } });
+      navigate(`/bill-preview/${billId}`, { state: { pdfPath: pdfRes.data.pdf_url || pdfRes.data.pdf_path } });
     } catch (err) {
       const msg = err.response?.data?.error || 'Failed to generate bill. Please try again.';
       addToast(msg, 'error');
@@ -249,14 +249,30 @@ export default function CreateBill({ editMode = false }) {
         {/* ── BILL INFORMATION ── */}
         <SectionCard icon={FileText} title="Bill Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Bill Number *" error={errors.billNumber}>
-              <input
-                className="input"
-                value={billNumber}
-                onChange={e => setBillNumber(e.target.value)}
-                placeholder="SC-0001"
-              />
-            </Field>
+            {/* Bill Number — read-only, assigned by server */}
+            <div className="form-group">
+              <label className="label">Bill Number</label>
+              <div
+                className="input flex items-center gap-2 cursor-default select-all"
+                style={{
+                  background: 'rgba(184,117,79,0.06)',
+                  borderColor: 'rgba(184,117,79,0.35)',
+                  color: billNumber ? '#E8D5C4' : '#71717A',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: 13,
+                  userSelect: 'all',
+                }}
+                title={editMode ? 'Bill number cannot be changed' : 'Assigned automatically by server on save'}
+              >
+                {billNumber
+                  ? billNumber
+                  : <span style={{ color: '#71717A', fontFamily: 'inherit', fontSize: 12 }}>Auto-assigned on save</span>
+                }
+              </div>
+              <p className="text-xs mt-1" style={{ color: '#71717A' }}>
+                {editMode ? '🔒 Locked — cannot be changed' : '⚙️ Generated by server'}
+              </p>
+            </div>
             <Field label="Bill Date *" error={errors.billDate}>
               <input
                 className="input"

@@ -144,22 +144,15 @@ async function getBillById(req, res) {
 async function createBill(req, res) {
   try {
     const {
-      bill_number, bill_date, due_date, customer_name, customer_mobile,
+      bill_date, due_date, customer_name, customer_mobile,
       customer_address, customer_gst, template_id, template, subtotal, discount,
       tax, tax_rate, grand_total, items = [],
     } = req.body;
 
-    // Validation
-    if (!bill_number?.trim()) return res.status(400).json({ error: 'Bill number is required.' });
+    // Validation — bill_number is server-generated, not accepted from client
     if (!bill_date) return res.status(400).json({ error: 'Bill date is required.' });
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Customer name is required.' });
     if (!items.length) return res.status(400).json({ error: 'Please add at least one item.' });
-
-    // Check duplicate
-    const exists = await Bill.findOne({ bill_number: bill_number.trim() });
-    if (exists) {
-      return res.status(409).json({ error: `Bill number "${bill_number}" already exists.` });
-    }
 
     let templateRef = template || template_id || null;
     if (templateRef && !mongoose.Types.ObjectId.isValid(templateRef)) {
@@ -168,8 +161,7 @@ async function createBill(req, res) {
       templateRef = foundTemplate ? foundTemplate._id : null;
     }
 
-    const bill = await Bill.create({
-      bill_number: bill_number.trim(),
+    const billData = {
       bill_date,
       due_date: due_date || null,
       customer_name: customer_name.trim(),
@@ -189,9 +181,31 @@ async function createBill(req, res) {
         rate: parseFloat(item.rate) || 0,
         amount: parseFloat(item.amount) || 0,
       })),
-    });
+    };
+
+    // Server-generated bill number with retry loop for race-condition safety.
+    // MongoDB's unique index on bill_number (E11000) is the final guard; we
+    // retry up to 5 times so two simultaneous requests never get the same number.
+    const MAX_RETRIES = 5;
+    let bill;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const generatedNumber = await getNextBillNumber();
+      try {
+        bill = await Bill.create({ ...billData, bill_number: generatedNumber });
+        break; // success — exit retry loop
+      } catch (dupErr) {
+        // E11000 = MongoDB duplicate key error
+        if (dupErr.code === 11000 && attempt < MAX_RETRIES) {
+          console.warn(`createBill: duplicate bill_number "${generatedNumber}", retrying (attempt ${attempt})...`);
+          continue;
+        }
+        throw dupErr; // re-throw if not a dup error or we've exhausted retries
+      }
+    }
 
     const result = await Bill.findById(bill._id).populate('template').lean({ virtuals: true });
+    // Always include _id as a string so the frontend can reliably use it
+    result._id = result._id.toString();
     res.status(201).json(result);
   } catch (err) {
     console.error('createBill error:', err);
