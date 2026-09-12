@@ -40,6 +40,10 @@ const billSchema = new mongoose.Schema(
 );
 
 // Backward-compatibility aliases for frontend
+billSchema.virtual('id').get(function () {
+  return this._id ? this._id.toHexString() : undefined;
+});
+
 billSchema.virtual('pdf_path').get(function () {
   return this.pdf_url;
 }).set(function (val) {

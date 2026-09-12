@@ -121,6 +121,8 @@ async function getAllBills(req, res) {
     const baseUrl = getBaseUrl(req);
 
     const enrichedBills = bills.map((b) => {
+      b.id = String(b._id);
+      b._id = String(b._id);
       if (b.pdf_public_id || b.pdf_url) {
         b.pdf_path = `${baseUrl}/api/bills/${b._id}/pdf`;
         b.pdf_url = `${baseUrl}/api/bills/${b._id}/pdf`;
@@ -153,6 +155,9 @@ async function getBillById(req, res) {
     }
 
     if (!bill) return res.status(404).json({ error: 'Bill not found' });
+
+    bill.id = String(bill._id);
+    bill._id = String(bill._id);
 
     if (bill.pdf_public_id || bill.pdf_url) {
       const baseUrl = getBaseUrl(req);
@@ -231,8 +236,9 @@ async function createBill(req, res) {
     }
 
     const result = await Bill.findById(bill._id).populate('template').lean({ virtuals: true });
-    // Always include _id as a string so the frontend can reliably use it
+    // Always include both _id and id as strings so the frontend can reliably use either
     result._id = result._id.toString();
+    result.id = result._id;
     res.status(201).json(result);
   } catch (err) {
     console.error('createBill error:', err);
@@ -243,7 +249,13 @@ async function createBill(req, res) {
 // PUT /api/bills/:id
 async function updateBill(req, res) {
   try {
-    const bill = await Bill.findById(req.params.id);
+    let bill = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      bill = await Bill.findById(req.params.id);
+    }
+    if (!bill) {
+      bill = await Bill.findOne({ bill_number: req.params.id });
+    }
     if (!bill) return res.status(404).json({ error: 'Bill not found' });
 
     const {
@@ -296,6 +308,8 @@ async function updateBill(req, res) {
 
     await bill.save();
     const updated = await Bill.findById(bill._id).populate('template').lean({ virtuals: true });
+    updated._id = updated._id.toString();
+    updated.id = updated._id;
     res.json(updated);
   } catch (err) {
     console.error('updateBill error:', err);
@@ -306,7 +320,13 @@ async function updateBill(req, res) {
 // DELETE /api/bills/:id
 async function deleteBill(req, res) {
   try {
-    const bill = await Bill.findById(req.params.id);
+    let bill = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      bill = await Bill.findById(req.params.id);
+    }
+    if (!bill) {
+      bill = await Bill.findOne({ bill_number: req.params.id });
+    }
     if (!bill) return res.status(404).json({ error: 'Bill not found' });
 
     // Delete PDF from Cloudinary if it exists
@@ -325,7 +345,13 @@ async function deleteBill(req, res) {
 // POST /api/bills/:id/pdf
 async function generateBillPdf(req, res) {
   try {
-    const bill = await Bill.findById(req.params.id).populate('template');
+    let bill = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      bill = await Bill.findById(req.params.id).populate('template');
+    }
+    if (!bill) {
+      bill = await Bill.findOne({ bill_number: req.params.id }).populate('template');
+    }
     if (!bill) return res.status(404).json({ error: 'Bill not found' });
 
     let template = bill.template;

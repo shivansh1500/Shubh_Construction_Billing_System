@@ -181,65 +181,68 @@ export default function BillHistory() {
                 </tr>
               </thead>
               <tbody>
-                {bills.map(bill => (
-                  <tr key={bill.id}>
-                    <td>
-                      <span
-                        className="font-semibold text-white cursor-pointer hover:text-[#B8754F] transition-colors"
-                        style={{ fontFamily: 'JetBrains Mono', fontSize: 13 }}
-                        onClick={() => navigate(`/bill-preview/${bill.id}`)}
-                      >
-                        {bill.bill_number}
-                      </span>
-                    </td>
-                    <td className="text-[#A1A1AA] text-sm">{formatDate(bill.bill_date)}</td>
-                    <td>
-                      <div>
-                        <p className="text-sm text-white font-medium">{bill.customer_name}</p>
-                        {bill.customer_address && (
-                          <p className="text-xs text-[#71717A] truncate max-w-[160px]">{bill.customer_address}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="text-[#A1A1AA] text-sm">{bill.customer_mobile || '-'}</td>
-                    <td className="text-right">
-                      <span className="font-semibold text-white">{formatCurrency(bill.grand_total)}</span>
-                    </td>
-                    <td>
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          title="View"
-                          className="btn btn-ghost btn-sm p-1.5"
-                          onClick={() => navigate(`/bill-preview/${bill.id}`)}
+                {bills.map(bill => {
+                  const bId = bill._id || bill.id;
+                  return (
+                    <tr key={bId}>
+                      <td>
+                        <span
+                          className="font-semibold text-white cursor-pointer hover:text-[#B8754F] transition-colors"
+                          style={{ fontFamily: 'JetBrains Mono', fontSize: 13 }}
+                          onClick={() => navigate(`/bill-preview/${bId}`)}
                         >
-                          <Eye size={14} className="text-[#A1A1AA] hover:text-white" />
-                        </button>
-                        <button
-                          title="Edit"
-                          className="btn btn-ghost btn-sm p-1.5"
-                          onClick={() => navigate(`/edit-bill/${bill.id}`)}
-                        >
-                          <Edit2 size={14} className="text-[#A1A1AA] hover:text-[#B8754F]" />
-                        </button>
-                        <button
-                          title="Regenerate PDF"
-                          className="btn btn-ghost btn-sm p-1.5"
-                          onClick={() => handleRegenerate(bill.id)}
-                          disabled={regeneratingId === bill.id}
-                        >
-                          <RefreshCw size={14} className={`text-[#A1A1AA] hover:text-green-400 ${regeneratingId === bill.id ? 'animate-spin' : ''}`} />
-                        </button>
-                        <button
-                          title="Delete"
-                          className="btn btn-ghost btn-sm p-1.5"
-                          onClick={() => setDeleteId(bill.id)}
-                        >
-                          <Trash2 size={14} className="text-[#A1A1AA] hover:text-red-400" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {bill.bill_number}
+                        </span>
+                      </td>
+                      <td className="text-[#A1A1AA] text-sm">{formatDate(bill.bill_date)}</td>
+                      <td>
+                        <div>
+                          <p className="text-sm text-white font-medium">{bill.customer_name}</p>
+                          {bill.customer_address && (
+                            <p className="text-xs text-[#71717A] truncate max-w-[160px]">{bill.customer_address}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="text-[#A1A1AA] text-sm">{bill.customer_mobile || '-'}</td>
+                      <td className="text-right">
+                        <span className="font-semibold text-white">{formatCurrency(bill.grand_total)}</span>
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            title="View"
+                            className="btn btn-ghost btn-sm p-1.5"
+                            onClick={() => navigate(`/bill-preview/${bId}`)}
+                          >
+                            <Eye size={14} className="text-[#A1A1AA] hover:text-white" />
+                          </button>
+                          <button
+                            title="Edit"
+                            className="btn btn-ghost btn-sm p-1.5"
+                            onClick={() => navigate(`/edit-bill/${bId}`)}
+                          >
+                            <Edit2 size={14} className="text-[#A1A1AA] hover:text-[#B8754F]" />
+                          </button>
+                          <button
+                            title="Regenerate PDF"
+                            className="btn btn-ghost btn-sm p-1.5"
+                            onClick={() => handleRegenerate(bId)}
+                            disabled={regeneratingId === bId}
+                          >
+                            <RefreshCw size={14} className={`text-[#A1A1AA] hover:text-green-400 ${regeneratingId === bId ? 'animate-spin' : ''}`} />
+                          </button>
+                          <button
+                            title="Delete"
+                            className="btn btn-ghost btn-sm p-1.5"
+                            onClick={() => setDeleteId(bId)}
+                          >
+                            <Trash2 size={14} className="text-[#A1A1AA] hover:text-red-400" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
