@@ -48,24 +48,40 @@ export default function BillPreview() {
     }
   }
 
-  function handleOpenPDF() {
+  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '');
+  const serverBase = apiBase.replace(/\/api$/, '');
+
+  function getPdfUrl() {
     if (pdfPath) {
-      const url = pdfPath.startsWith('http')
-        ? pdfPath
-        : `http://localhost:3001/bills/${encodeURIComponent(pdfPath.split(/[\\/]/).pop())}`;
+      if (pdfPath.includes('/api/bills/')) return pdfPath;
+      if (pdfPath.startsWith('http')) return pdfPath;
+      if (pdfPath.startsWith('/')) return `${serverBase}${pdfPath}`;
+    }
+    return id ? `${apiBase}/bills/${id}/pdf` : '';
+  }
+
+  function handleOpenPDF() {
+    const url = getPdfUrl();
+    if (url) {
       window.open(url, '_blank');
     }
   }
 
   function handlePrint() {
-    if (pdfPath) {
-      const url = pdfPath.startsWith('http')
-        ? pdfPath
-        : `http://localhost:3001/bills/${encodeURIComponent(pdfPath.split(/[\\/]/).pop())}`;
+    const url = getPdfUrl();
+    if (url) {
       const win = window.open(url, '_blank');
       if (win) {
         win.addEventListener('load', () => win.print());
       }
+    }
+  }
+
+  function handleDownloadPDF() {
+    const url = getPdfUrl();
+    if (url) {
+      const downloadUrl = url.includes('?') ? `${url}&download=true` : `${url}?download=true`;
+      window.open(downloadUrl, '_blank');
     }
   }
 
@@ -132,9 +148,9 @@ export default function BillPreview() {
               </span>
             </div>
             <div className="flex items-center justify-center" style={{ minHeight: 560, background: '#111418' }}>
-              {pdfPath ? (
+              {pdfPath || bill?.pdf_url || bill?.pdf_public_id ? (
                 <iframe
-                  src={pdfPath.startsWith('http') ? pdfPath : `http://localhost:3001/bills/${encodeURIComponent(pdfPath.split(/[\\/]/).pop())}`}
+                  src={getPdfUrl()}
                   className="w-full"
                   style={{ height: 700, border: 'none' }}
                   title="Bill PDF Preview"
@@ -160,7 +176,7 @@ export default function BillPreview() {
               <button
                 className="btn btn-primary btn-pill w-full shadow-copper"
                 onClick={handleOpenPDF}
-                disabled={!pdfPath}
+                disabled={!pdfPath && !bill?.pdf_url && !bill?.pdf_public_id}
               >
                 <FolderOpen size={15} />
                 <span>Open / View PDF</span>
@@ -168,15 +184,15 @@ export default function BillPreview() {
               <button
                 className="btn btn-secondary btn-pill w-full"
                 onClick={handlePrint}
-                disabled={!pdfPath}
+                disabled={!pdfPath && !bill?.pdf_url && !bill?.pdf_public_id}
               >
                 <Printer size={15} />
                 <span>Print Document</span>
               </button>
               <button
                 className="btn btn-secondary btn-pill w-full"
-                onClick={handleOpenPDF}
-                disabled={!pdfPath}
+                onClick={handleDownloadPDF}
+                disabled={!pdfPath && !bill?.pdf_url && !bill?.pdf_public_id}
               >
                 <Download size={15} />
                 <span>Download / Save As</span>

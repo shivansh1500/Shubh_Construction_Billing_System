@@ -1,11 +1,22 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
+const https = require('https');
+const http = require('http');
 const Bill = require('../models/Bill');
 const Template = require('../models/Template');
 const Settings = require('../models/Settings');
 const cloudinaryService = require('../services/cloudinaryService');
 const pdfService = require('../services/pdfService');
+const { BILLS_DIR } = require('../database/db');
+
+function getBaseUrl(req) {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.get('host') || 'localhost:3001';
+  return `${protocol}://${host}`;
+}
 
 async function getNextBillNumber() {
   const settings = await Settings.findOne();
@@ -107,9 +118,18 @@ async function getAllBills(req, res) {
     ]);
 
     const totalRevenue = revAgg.length > 0 ? revAgg[0].totalRevenue : 0;
+    const baseUrl = getBaseUrl(req);
+
+    const enrichedBills = bills.map((b) => {
+      if (b.pdf_public_id || b.pdf_url) {
+        b.pdf_path = `${baseUrl}/api/bills/${b._id}/pdf`;
+        b.pdf_url = `${baseUrl}/api/bills/${b._id}/pdf`;
+      }
+      return b;
+    });
 
     res.json({
-      bills,
+      bills: enrichedBills,
       total,
       totalRevenue,
       page: pageNum,
@@ -133,6 +153,13 @@ async function getBillById(req, res) {
     }
 
     if (!bill) return res.status(404).json({ error: 'Bill not found' });
+
+    if (bill.pdf_public_id || bill.pdf_url) {
+      const baseUrl = getBaseUrl(req);
+      bill.pdf_path = `${baseUrl}/api/bills/${bill._id}/pdf`;
+      bill.pdf_url = `${baseUrl}/api/bills/${bill._id}/pdf`;
+    }
+
     res.json(bill);
   } catch (err) {
     console.error('getBillById error:', err);
@@ -327,16 +354,96 @@ async function generateBillPdf(req, res) {
     bill.pdf_public_id = uploadResult.public_id;
     await bill.save();
 
+    const baseUrl = getBaseUrl(req);
+    const streamUrl = `${baseUrl}/api/bills/${bill._id}/pdf`;
+
     res.json({
       success: true,
-      pdf_path: uploadResult.url,
-      pdf_url: uploadResult.url,
+      pdf_path: streamUrl,
+      pdf_url: streamUrl,
+      cloudinary_url: uploadResult.url,
       pdf_public_id: uploadResult.public_id,
       bill_number: bill.bill_number,
     });
   } catch (err) {
     console.error('generateBillPdf error:', err);
     res.status(500).json({ error: 'Failed to generate PDF: ' + err.message });
+  }
+}
+
+// GET /api/bills/:id/pdf
+async function getBillPdf(req, res) {
+  try {
+    let bill = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      bill = await Bill.findById(req.params.id);
+    }
+    if (!bill) {
+      bill = await Bill.findOne({ bill_number: req.params.id });
+    }
+    if (!bill) return res.status(404).json({ error: 'Bill not found' });
+
+    const isDownload = req.query.download === 'true' || req.query.download === '1';
+    const disposition = isDownload ? 'attachment' : 'inline';
+    const filename = `Invoice-${bill.bill_number || bill._id}.pdf`;
+
+    // 1. Try streaming from Cloudinary using authenticated signed URL
+    if (bill.pdf_public_id && cloudinaryService.isConfigured()) {
+      const downloadUrl = cloudinaryService.getDownloadUrl(bill.pdf_public_id);
+      if (downloadUrl) {
+        return new Promise((resolve) => {
+          const client = downloadUrl.startsWith('https') ? https : http;
+          const request = client.get(downloadUrl, (stream) => {
+            if (stream.statusCode === 200) {
+              res.setHeader('Content-Type', 'application/pdf');
+              res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
+              if (stream.headers['content-length']) {
+                res.setHeader('Content-Length', stream.headers['content-length']);
+              }
+              stream.pipe(res);
+              stream.on('end', resolve);
+              return;
+            }
+
+            // If Cloudinary didn't return 200, try local file fallback
+            checkLocalFallback();
+            resolve();
+          });
+
+          request.on('error', (err) => {
+            console.error('[getBillPdf] Cloudinary stream error:', err.message);
+            checkLocalFallback();
+            resolve();
+          });
+        });
+      }
+    }
+
+    // 2. Fallback: check local file or direct URL
+    function checkLocalFallback() {
+      if (bill.bill_number) {
+        const localFilename = `${bill.bill_number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+        const localPath = path.join(BILLS_DIR, localFilename);
+        if (fs.existsSync(localPath)) {
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
+          return res.sendFile(localPath);
+        }
+      }
+      if (bill.pdf_url && bill.pdf_url.startsWith('http')) {
+        return res.redirect(bill.pdf_url);
+      }
+      if (!res.headersSent) {
+        res.status(404).json({ error: 'PDF file not available for this bill' });
+      }
+    }
+
+    checkLocalFallback();
+  } catch (err) {
+    console.error('getBillPdf error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to retrieve PDF: ' + err.message });
+    }
   }
 }
 
@@ -348,4 +455,5 @@ module.exports = {
   updateBill,
   deleteBill,
   generateBillPdf,
+  getBillPdf,
 };

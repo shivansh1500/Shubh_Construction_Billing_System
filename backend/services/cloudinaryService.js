@@ -34,7 +34,9 @@ async function uploadPDF(localBufferOrPath, billNumber) {
   const publicId = `${safeNumber}_${Date.now()}`;
   const folder = 'shubh-construction/bills';
 
-  if (Buffer.isBuffer(localBufferOrPath)) {
+  const isBufferLike = Buffer.isBuffer(localBufferOrPath) || localBufferOrPath instanceof Uint8Array;
+  if (isBufferLike) {
+    const buffer = Buffer.isBuffer(localBufferOrPath) ? localBufferOrPath : Buffer.from(localBufferOrPath);
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -52,10 +54,7 @@ async function uploadPDF(localBufferOrPath, billNumber) {
         }
       );
 
-      const readable = new streamifier.Readable();
-      readable._read = () => {};
-      readable.push(localBufferOrPath);
-      readable.push(null);
+      const readable = streamifier.Readable.from(buffer);
       readable.pipe(uploadStream);
     });
   }
@@ -88,6 +87,8 @@ async function uploadImage(fileBuffer, folder = 'uploads') {
   const cleanFolder = folder.replace(/^\/+|\/+$/g, '');
   const targetFolder = `shubh-construction/${cleanFolder}`;
 
+  const buffer = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer);
+
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
@@ -103,10 +104,7 @@ async function uploadImage(fileBuffer, folder = 'uploads') {
       }
     );
 
-    const readable = new streamifier.Readable();
-    readable._read = () => {};
-    readable.push(fileBuffer);
-    readable.push(null);
+    const readable = streamifier.Readable.from(buffer);
     readable.pipe(uploadStream);
   });
 }
@@ -125,9 +123,24 @@ async function deleteAsset(public_id, resource_type = 'image') {
   }
 }
 
+/**
+ * Generate an authenticated signed download URL for raw asset
+ * Bypasses Cloudinary ACL restrictions for PDF delivery
+ * @param {string} public_id
+ * @returns {string|null}
+ */
+function getDownloadUrl(public_id) {
+  if (!isConfigured() || !public_id) return null;
+  return cloudinary.utils.private_download_url(public_id, '', {
+    resource_type: 'raw',
+    type: 'upload',
+  });
+}
+
 module.exports = {
   isConfigured,
   uploadPDF,
   uploadImage,
   deleteAsset,
+  getDownloadUrl,
 };

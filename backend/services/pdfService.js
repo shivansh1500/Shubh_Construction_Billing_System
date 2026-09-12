@@ -4,12 +4,20 @@ const path = require('path');
 const fs = require('fs');
 const cloudinaryService = require('./cloudinaryService');
 const Settings = require('../models/Settings');
+const { BILLS_DIR } = require('../database/db');
 
 let puppeteerBrowser = null;
 
 async function getBrowser() {
   if (!puppeteerBrowser) {
-    const puppeteer = require('puppeteer');
+    // Use dynamic import() instead of require() so this CJS file can load
+    // puppeteer regardless of whether it ships as CJS or ESM, and regardless
+    // of Node.js version. require('puppeteer') breaks on Node 26 when any
+    // transitive dependency (e.g. yargs) has "type":"module" in its package.json,
+    // because Node 26 runs those files via ModuleJobSync where require() is
+    // unavailable. import() always works from CJS files in all Node versions.
+    const puppeteerModule = await import('puppeteer');
+    const puppeteer = puppeteerModule.default || puppeteerModule;
 
     // Try to find a usable Chrome executable
     const chromePaths = {
@@ -60,6 +68,7 @@ async function getBrowser() {
   }
   return puppeteerBrowser;
 }
+
 
 function formatCurrency(amount, currency = '₹') {
   if (!amount || isNaN(amount)) return `${currency}0.00`;
@@ -221,13 +230,23 @@ async function generatePDF({ bill, items, template }) {
       timeout: 30000,
     });
 
-    pdfBuffer = await page.pdf({
+    const rawPdf = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
     });
+    pdfBuffer = Buffer.isBuffer(rawPdf) ? rawPdf : Buffer.from(rawPdf);
   } finally {
     await page.close();
+  }
+
+  // Save a local copy to BILLS_DIR for instant local serving / fallback
+  try {
+    const safeNumber = String(bill.bill_number || Date.now()).replace(/[^a-zA-Z0-9-_]/g, '_');
+    const localPdfPath = path.join(BILLS_DIR, `${safeNumber}.pdf`);
+    fs.writeFileSync(localPdfPath, pdfBuffer);
+  } catch (err) {
+    console.warn('[PDF] Failed to save local backup copy:', err.message);
   }
 
   // Upload buffer to Cloudinary
