@@ -2,8 +2,11 @@ node_modules/
 dist/
 dist-electron/
 data/
+.cache/
+**/.cache/
 *.db
 *.pdf
 .env
 .DS_Store
 Thumbs.db
+

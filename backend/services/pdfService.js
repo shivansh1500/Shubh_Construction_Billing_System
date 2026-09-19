@@ -61,7 +61,7 @@ async function getBrowser() {
     ];
 
     puppeteerBrowser = await puppeteer.launch({
-      headless: process.platform === 'darwin' ? true : 'new',
+      headless: true,
       executablePath,
       args: launchArgs,
     });
