@@ -125,7 +125,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <LoadingSpinner size="lg" message="Loading Studio Veda spatial overview..." />
+        <LoadingSpinner size="lg" message="Loading Shubh Construction overview..." />
       </div>
     );
   }
@@ -133,8 +133,7 @@ export default function Dashboard() {
   return (
     <div className="page-content animate-[fadeIn_0.4s_ease] space-y-10 max-w-7xl mx-auto">
       {/* =========================================================================
-          STUDIO VEDA - FLAGSHIP HERO SECTION
-          "Craft An Authentic Living Space To Experience Timeless Architectural Poetics"
+          SHUBH CONSTRUCTION - FLAGSHIP HERO SECTION
          ========================================================================= */}
       <section className="relative rounded-[16px] overflow-hidden p-8 md:p-12 card-hero border border-[#756B61]/40">
         {/* Subtle atmospheric radial lighting */}
@@ -151,11 +150,11 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 mb-4">
             <span className="badge badge-copper">
               <Sparkles size={11} />
-              STUDIO VEDA · SPATIAL DESIGN
+              SHUBH CONSTRUCTION · BILLING SYSTEM
             </span>
             <span className="text-xs text-[#756B61] font-mono hidden sm:inline">•</span>
             <span className="text-xs text-[#A1A1AA] font-mono tracking-wider hidden sm:inline uppercase">
-              Shubh Construction Billing Engine
+              Precision Engineering Suite
             </span>
           </div>
 
@@ -325,13 +324,13 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Right Column: Quick Studio Actions & Veda Materials */}
+        {/* Right Column: Quick Actions & Civil Standards */}
         <div className="flex flex-col gap-6">
           {/* Quick Actions Card */}
           <div className="card p-6 border border-[#756B61]/25">
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2 font-mono tracking-wider uppercase">
               <Compass size={15} className="text-[#B8754F]" />
-              Quick Studio Actions
+              Quick Actions
             </h3>
             <div className="flex flex-col gap-3">
               <QuickAction
@@ -362,7 +361,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Raw Materials & Poetics Card */}
+          {/* Raw Materials & Standards Card */}
           <div
             className="rounded-[12px] p-6 relative overflow-hidden"
             style={{
@@ -376,7 +375,7 @@ export default function Dashboard() {
                 className="text-[11px] font-semibold tracking-widest uppercase"
                 style={{ fontFamily: 'JetBrains Mono', color: '#B8754F' }}
               >
-                Architectural Integrity
+                Civil Engineering Standards
               </p>
             </div>
             <h4 className="font-display text-lg text-white mb-2">Raw Materials & Precision</h4>

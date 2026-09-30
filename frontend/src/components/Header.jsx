@@ -18,7 +18,7 @@ export default function Header() {
   const route = Object.entries(routeTitles).find(([key]) =>
     key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)
   );
-  const { title, sub } = route?.[1] || { title: 'Studio Veda', sub: 'Spatial Construction Suite' };
+  const { title, sub } = route?.[1] || { title: 'Shubh Construction', sub: 'Civil Construction & Invoicing Suite' };
 
   return (
     <header

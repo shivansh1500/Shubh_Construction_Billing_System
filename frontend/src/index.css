@@ -5,8 +5,7 @@
 @tailwind utilities;
 
 /* ============================================
-   STUDIO VEDA - SPATIAL DESIGN
-   Version: neuform-staff-featured-2026-05-22
+   SHUBH CONSTRUCTION BILLING SYSTEM
    Primary: #B8754F | Secondary: #000000
    Accent: #9B5F3F  | Surface: #191C21
    Border: #756B61   | Text: #FFFFFF / #A1A1AA
@@ -331,7 +330,9 @@ textarea.input {
   border: 1px solid rgba(184, 117, 79, 0.35);
 }
 
-.badge-veda {
+.badge-veda,
+.badge-shubh,
+.badge-subtle {
   background: rgba(117, 107, 97, 0.15);
   color: #A1A1AA;
   border: 1px solid rgba(117, 107, 97, 0.35);

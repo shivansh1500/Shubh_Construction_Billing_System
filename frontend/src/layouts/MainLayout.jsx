@@ -5,7 +5,7 @@ import Header from '../components/Header';
 export default function MainLayout({ children }) {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#000000] text-[#FFFFFF]">
-      {/* Sidebar with Studio Veda aesthetic */}
+      {/* Sidebar with Shubh Construction aesthetic */}
       <Sidebar />
 
       {/* Main Workspace */}

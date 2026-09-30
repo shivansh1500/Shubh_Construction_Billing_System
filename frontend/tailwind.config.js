@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Studio Veda design system from design1.md
+        // Shubh Construction Billing System design system
         primary: {
           DEFAULT: '#B8754F',
           50: '#F8F0EB',

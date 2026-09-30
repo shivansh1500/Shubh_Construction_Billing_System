@@ -35,27 +35,29 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="px-6 py-6" style={{ borderBottom: '1px solid rgba(117, 107, 97, 0.2)' }}>
         <div className="flex items-center gap-3">
-          {/* Architectural Veda Monogram */}
+          {/* Shubh Construction Monogram */}
           <div
             className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, #B8754F 0%, #9B5F3F 100%)',
               boxShadow: '0 0 16px rgba(184, 117, 79, 0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
             }}
           >
-            <span className="font-display text-2xl font-normal text-white italic tracking-tighter">V</span>
+            <span className="font-mono text-sm font-bold text-white tracking-tight">SC</span>
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h2 className="font-display text-xl font-medium text-white tracking-wide leading-none">Studio Veda</h2>
+              <h2 className="font-display text-lg font-medium text-white tracking-wide leading-tight truncate">
+                Shubh Construction
+              </h2>
             </div>
             <p
-              className="text-[10px] leading-tight mt-1 truncate"
+              className="text-[10px] leading-tight mt-0.5 truncate"
               style={{ fontFamily: 'JetBrains Mono', color: '#B8754F', letterSpacing: '0.08em' }}
             >
-              SHUBH · SPATIAL BILLING
+              BILLING SYSTEM
             </p>
           </div>
         </div>
@@ -119,7 +121,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Architectural Philosophy Card */}
+      {/* Construction Standards Card */}
       <div className="p-3">
         <div
           className="p-3.5 rounded-[10px] relative overflow-hidden"
@@ -130,10 +132,10 @@ export default function Sidebar() {
         >
           <div className="flex items-center gap-2 mb-1">
             <Sparkles size={12} className="text-[#B8754F]" />
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[#B8754F]">Veda Poetics</span>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#B8754F]">Shubh Standards</span>
           </div>
           <p className="text-[11px] text-[#A1A1AA] leading-relaxed italic font-display">
-            "Crafting authentic spaces to experience timeless architectural poetics."
+            "Precision civil engineering, transparent client billing, and structural excellence."
           </p>
         </div>
       </div>
